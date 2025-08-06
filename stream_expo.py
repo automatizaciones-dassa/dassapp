@@ -2,43 +2,48 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import time
-from utils import highlight
+from utils import highlight, filter_dataframe_by_clients
 from supabase_connection import fetch_table_data
 
 def fetch_data_expo():
     arribos_expo_carga = fetch_table_data("arribos_expo_carga")
-    arribos_expo_carga['Fecha'] = pd.to_datetime(arribos_expo_carga['Fecha'], format='%d/%m')
-    arribos_expo_carga = arribos_expo_carga.sort_values(by="Fecha")
-    arribos_expo_carga['Fecha'] = arribos_expo_carga['Fecha'].dt.strftime('%d/%m')
     arribos_expo_ctns = fetch_table_data("arribos_expo_ctns")
-    arribos_expo_ctns['Fecha'] = pd.to_datetime(arribos_expo_ctns['Fecha'], format='%d/%m')
-    arribos_expo_ctns = arribos_expo_ctns.sort_values(by="Fecha")
-    arribos_expo_ctns['Fecha'] = arribos_expo_ctns['Fecha'].dt.strftime('%d/%m')
     verificaciones_expo = fetch_table_data("verificaciones_expo")
-    verificaciones_expo = verificaciones_expo[verificaciones_expo['Dia'] != '-']
     otros_expo = fetch_table_data("otros_expo")
-    otros_expo = otros_expo[otros_expo['Dia'] != '-']
     remisiones = fetch_table_data("remisiones")
-    # Filtro para eliminar filas con 'Dia' igual a '-'
-    remisiones = remisiones[remisiones['Dia'] != '-']
-    if not remisiones.empty:
-        remisiones['Dia'] = pd.to_datetime(remisiones['Dia'], format='%d/%m', errors='coerce')
-        remisiones['Hora'] = pd.to_datetime(remisiones['Hora'], errors='coerce').dt.strftime('%H:%M')
-        # Remove rows where date conversion failed
-        remisiones = remisiones.dropna(subset=['Dia'])
-        remisiones.sort_values(by=['Dia', 'Hora'], inplace=True)
-        remisiones['Hora'] = remisiones['Hora'].astype(str).str[:5]
-        remisiones['Hora'] = remisiones['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
-        remisiones['Dia'] = remisiones['Dia'].dt.strftime('%d/%m')
-        remisiones['Volumen'] = remisiones['Volumen'].round(0).astype(int)
-        cols = remisiones.columns.tolist()
-        cols.insert(1, cols.pop(cols.index('Hora')))
-        remisiones = remisiones[cols]
     pendiente_consolidar = fetch_table_data("pendiente_consolidar")
     listos_para_remitir = fetch_table_data("listos_para_remitir")
     vacios_disponibles = fetch_table_data("vacios_disponibles")
     a_consolidar = fetch_table_data("a_consolidar")
-    a_consolidar.sort_values(by="Dias", ascending=False, inplace=True)
+    try:
+        arribos_expo_carga['Fecha'] = pd.to_datetime(arribos_expo_carga['Fecha'], format='%d/%m')
+        arribos_expo_carga = arribos_expo_carga.sort_values(by="Fecha")
+        arribos_expo_carga['Fecha'] = arribos_expo_carga['Fecha'].dt.strftime('%d/%m')
+        arribos_expo_ctns['Fecha'] = pd.to_datetime(arribos_expo_ctns['Fecha'], format='%d/%m')
+        arribos_expo_ctns = arribos_expo_ctns.sort_values(by="Fecha")
+        arribos_expo_ctns['Fecha'] = arribos_expo_ctns['Fecha'].dt.strftime('%d/%m')
+        verificaciones_expo = verificaciones_expo[verificaciones_expo['Dia'] != '-']
+        otros_expo = otros_expo[otros_expo['Dia'] != '-']
+        remisiones = remisiones[remisiones['Dia'] != '-']
+        if not remisiones.empty:
+            cols = remisiones.columns.tolist()
+            cols.insert(2, cols.pop(cols.index('Operacion')))
+            remisiones = remisiones[cols]
+            remisiones['Dia'] = pd.to_datetime(remisiones['Dia'], format='%d/%m', errors='coerce')
+            remisiones['Hora'] = pd.to_datetime(remisiones['Hora'], errors='coerce').dt.strftime('%H:%M')
+            # Remove rows where date conversion failed
+            remisiones = remisiones.dropna(subset=['Dia'])
+            remisiones.sort_values(by=['Dia', 'Hora'], inplace=True)
+            remisiones['Hora'] = remisiones['Hora'].astype(str).str[:5]
+            remisiones['Hora'] = remisiones['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
+            remisiones['Dia'] = remisiones['Dia'].dt.strftime('%d/%m')
+            remisiones['Volumen'] = remisiones['Volumen'].round(0).astype(int)
+            cols = remisiones.columns.tolist()
+            cols.insert(1, cols.pop(cols.index('Hora')))
+            remisiones = remisiones[cols]
+        a_consolidar.sort_values(by="Dias", ascending=False, inplace=True)
+    except Exception:
+        pass
     return arribos_expo_carga, arribos_expo_ctns, verificaciones_expo, otros_expo, remisiones, pendiente_consolidar, listos_para_remitir, vacios_disponibles, a_consolidar
 
 @st.cache_data(ttl=60)
@@ -51,10 +56,23 @@ def fetch_last_update():
 
     
 
-def show_page_expo():
+def show_page_expo(allowed_clients=None):
     # Load data
     arribos_expo_carga, arribos_expo_ctns, verificaciones_expo, otros_expo, remisiones, pendiente_consolidar, listos_para_remitir, vacios_disponibles, a_consolidar = fetch_data_expo()
     last_update = fetch_last_update()
+    
+    # Apply client filtering first
+    if allowed_clients is not None:
+        arribos_expo_carga = filter_dataframe_by_clients(arribos_expo_carga, allowed_clients)
+        arribos_expo_ctns = filter_dataframe_by_clients(arribos_expo_ctns, allowed_clients)
+        verificaciones_expo = filter_dataframe_by_clients(verificaciones_expo, allowed_clients)
+        otros_expo = filter_dataframe_by_clients(otros_expo, allowed_clients)
+        remisiones = filter_dataframe_by_clients(remisiones, allowed_clients)
+        pendiente_consolidar = filter_dataframe_by_clients(pendiente_consolidar, allowed_clients)
+        listos_para_remitir = filter_dataframe_by_clients(listos_para_remitir, allowed_clients)
+        vacios_disponibles = filter_dataframe_by_clients(vacios_disponibles, allowed_clients)
+        a_consolidar = filter_dataframe_by_clients(a_consolidar, allowed_clients)
+    
     mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
     if st.session_state['username'] == "mudancera":
         arribos_expo_carga = arribos_expo_carga[arribos_expo_carga['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]

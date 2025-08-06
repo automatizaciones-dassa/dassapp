@@ -2,30 +2,43 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
-from utils import highlight
+from utils import highlight, filter_dataframe_by_clients    
 from supabase_connection import fetch_table_data
 @st.cache_data(ttl=60) 
 def fetch_data_impo():
     arribos = fetch_table_data("arribos")
-    arribos = arribos.sort_values(by="Turno") 
     pendiente_desconsolidar = fetch_table_data("pendiente_desconsolidar")
     verificaciones_impo = fetch_table_data("verificaciones_impo")
-    verificaciones_impo = verificaciones_impo.drop(columns=['Hora'])
     retiros_impo = fetch_table_data("retiros_impo")
-    retiros_impo['Dia'] = pd.to_datetime(retiros_impo['Dia'], format='%d/%m')
-    retiros_impo['Hora'] = pd.to_datetime(retiros_impo['Hora'], errors='coerce').dt.strftime('%H:%M')
-    retiros_impo.sort_values(by=['Dia', 'Hora'], inplace=True)
-    retiros_impo['Hora'] = retiros_impo['Hora'].astype(str).str[:5]
-    retiros_impo['Hora'] = retiros_impo['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
-    retiros_impo['Dia'] = retiros_impo['Dia'].dt.strftime('%d/%m')
-    retiros_impo['Volumen'] = retiros_impo['Volumen'].round(0).astype(int)  # Round Volumen to integer
-    cols = retiros_impo.columns.tolist()
-    cols.insert(1, cols.pop(cols.index('Hora')))
-    retiros_impo = retiros_impo[cols]
     otros_impo = fetch_table_data("otros_impo")
-    otros_impo = otros_impo[otros_impo['Dia'] != '-']
     existente_plz = fetch_table_data("existente_plz")
     existente_alm = fetch_table_data("existente_alm")
+    try:
+        arribos = arribos.sort_values(by="Turno")
+        verificaciones_impo = verificaciones_impo.drop(columns=['Hora'])
+        pendiente_desconsolidar['Vto. Vacio'] = pd.to_datetime(pendiente_desconsolidar['Vto. Vacio'], format='%d/%m', errors='coerce')
+        pendiente_desconsolidar = pendiente_desconsolidar.sort_values(by='Vto. Vacio')
+        pendiente_desconsolidar['Vto. Vacio'] = pendiente_desconsolidar['Vto. Vacio'].dt.strftime('%d/%m')
+        cols = verificaciones_impo.columns.tolist()
+        cols.insert(2, cols.pop(cols.index('Operacion')))
+        verificaciones_impo = verificaciones_impo[cols]
+        cols = retiros_impo.columns.tolist()
+        cols.insert(2, cols.pop(cols.index('Operacion')))
+        retiros_impo = retiros_impo[cols]
+        retiros_impo['Dia'] = pd.to_datetime(retiros_impo['Dia'], format='%d/%m')
+        retiros_impo['Hora'] = pd.to_datetime(retiros_impo['Hora'], errors='coerce').dt.strftime('%H:%M')
+        retiros_impo.sort_values(by=['Dia', 'Hora'], inplace=True)
+        retiros_impo['Hora'] = retiros_impo['Hora'].astype(str).str[:5]
+        retiros_impo['Hora'] = retiros_impo['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
+        retiros_impo['Dia'] = retiros_impo['Dia'].dt.strftime('%d/%m')
+        retiros_impo['Volumen'] = retiros_impo['Volumen'].round(0).astype(int)
+        cols = retiros_impo.columns.tolist()
+        cols.insert(1, cols.pop(cols.index('Hora')))
+        retiros_impo = retiros_impo[cols]
+        otros_impo = otros_impo[otros_impo['Dia'] != '-']
+    except Exception:
+        pass
+
     return arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm
 
 @st.cache_data(ttl=60)
@@ -36,10 +49,21 @@ def fetch_last_update():
         return pd.to_datetime(last_update).strftime("%d/%m/%Y %H:%M")
     return "No disponible"
 
-def show_page_impo():
+def show_page_impo(allowed_clients=None):
     # Load data
     arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm= fetch_data_impo()
     last_update = fetch_last_update()
+    
+    # Apply client filtering first
+    if allowed_clients is not None:
+        arribos = filter_dataframe_by_clients(arribos, allowed_clients)
+        pendiente_desconsolidar = filter_dataframe_by_clients(pendiente_desconsolidar, allowed_clients)
+        verificaciones_impo = filter_dataframe_by_clients(verificaciones_impo, allowed_clients)
+        retiros_impo = filter_dataframe_by_clients(retiros_impo, allowed_clients)
+        otros_impo = filter_dataframe_by_clients(otros_impo, allowed_clients)
+        existente_plz = filter_dataframe_by_clients(existente_plz, allowed_clients)
+        existente_alm = filter_dataframe_by_clients(existente_alm, allowed_clients)
+    
     mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
     if st.session_state['username'] == "mudancera":
         arribos = arribos[arribos['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]
@@ -94,8 +118,8 @@ def show_page_impo():
         st.subheader("Retiros")
         retiros_impo_ctn = retiros_impo[retiros_impo['Envase'] == "Contenedor"].drop(columns=['Envase', 'Cant.', 'Volumen', 'e-tally', 'Salida'])
         retiros_impo_carga = retiros_impo[retiros_impo['Envase'] != "Contenedor"]
-        retiros_impo_ctnnac = retiros_impo_carga[retiros_impo['Ubic.'] == 'CTNNAC']
-        retiros_impo_carga = retiros_impo_carga[retiros_impo['Ubic.'] != 'CTNNAC']
+        retiros_impo_ctnnac = retiros_impo_carga[retiros_impo_carga['Ubic.'] == 'CTNNAC']
+        retiros_impo_carga = retiros_impo_carga[retiros_impo_carga['Ubic.'] != 'CTNNAC']
         st.write("Contenedores")
         st.dataframe(retiros_impo_ctn.style.apply(highlight, axis=1), 
                     hide_index=True, use_container_width=True)

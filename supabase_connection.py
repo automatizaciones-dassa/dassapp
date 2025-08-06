@@ -55,3 +55,55 @@ def update_log(table_name):
         "last_update": datetime.now().isoformat()
     }
     supabase_client.from_("update_log").insert(log_entry).execute()
+
+def insert_data(table_name, data):
+    """Insert a single record into the specified table"""
+    try:
+        # Remove 'id' field if it exists to let Supabase auto-generate it
+        clean_data = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase_client.from_(table_name).insert(clean_data).execute()
+        return result
+    except Exception as e:
+        raise e
+
+def delete_data(table_name, record_id):
+    """Delete a record by ID from the specified table"""
+    try:
+        result = supabase_client.from_(table_name).delete().eq('id', record_id).execute()
+        return result
+    except Exception as e:
+        raise e
+
+def update_data(table_name, record_id, data):
+    """Update a record by ID in the specified table"""
+    try:
+        # Remove 'id' field if it exists to avoid conflicts
+        clean_data = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase_client.from_(table_name).update(clean_data).eq('id', record_id).execute()
+        return result
+    except Exception as e:
+        raise e
+
+def update_data_by_key(table_name, key_column, key_value, data):
+    """Update a record by using a specific column as identifier"""
+    try:
+        clean_data = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase_client.from_(table_name).update(clean_data).eq(key_column, key_value).execute()
+        return result
+    except Exception as e:
+        raise e
+
+def update_data_by_index(table_name, row_index, data, identifier_column='Contenedor'):
+    """Update a record by using a specific column as identifier for tables without id"""
+    try:
+        # Get the current data to find the identifier value
+        current_data = fetch_table_data(table_name)
+        if row_index < len(current_data):
+            identifier_value = current_data.iloc[row_index][identifier_column]
+            clean_data = {k: v for k, v in data.items() if k != 'id'}
+            result = supabase_client.from_(table_name).update(clean_data).eq(identifier_column, identifier_value).execute()
+            return result
+        else:
+            raise Exception(f"Row index {row_index} out of range for table {table_name}")
+    except Exception as e:
+        raise e
