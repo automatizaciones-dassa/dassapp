@@ -10,12 +10,12 @@ from supabase_connection import fetch_table_data
 def fetch_data_plazoleta():
     arribos = fetch_table_data("arribos")
     arribos_semana = fetch_table_data("arribos_semana")
-    arribos_semana_pendientes = arribos_semana[arribos_semana['arribado'] == "0.0"]
+    arribos_semana_pendientes = arribos_semana[arribos_semana['arribado'] == "1"]
     tabla_arribos_pendientes = arribos_semana_pendientes
-    arribos_por_fecha = tabla_arribos_pendientes['fecha'].value_counts().reset_index()
+    arribos_por_fecha = tabla_arribos_pendientes['Fecha'].value_counts().reset_index()
     arribos_por_fecha.columns = ['Fecha', 'CNTs']
-    tabla_arribos_pendientes = tabla_arribos_pendientes[['fecha', 'contenedor', 'cliente', 'T-TD']]
-    tabla_arribos_pendientes.columns = ['Fecha', 'Contenedor', 'Cliente', 'T-TD']
+    #tabla_arribos_pendientes = tabla_arribos_pendientes[['Fecha', 'Contenedor', 'cliente']]  #Falta agregar T/TD en el flujo de datos
+    #tabla_arribos_pendientes.columns = ['Fecha', 'Contenedor', 'Cliente']
     pendiente_desconsolidar = fetch_table_data("pendiente_desconsolidar")
     existente_plz = fetch_table_data("existente_plz")
     existente_plz = existente_plz[existente_plz['Operacion'].str.contains("-0-")] #Saco la mercaderia que esta en PLZ (solo quiero tachos)
@@ -85,6 +85,7 @@ def show_page_plazoleta():
 
     with col_arribos:
         st.header('Arribos')
+        st.info('ATENCION: En arreglo por sincronización con orden tráfico')
         st.markdown("""
         <div style="display: flex; justify-content: space-between; width: 100%;">
             <div style="text-align: center; flex: 1;">
@@ -102,8 +103,10 @@ def show_page_plazoleta():
         </div>
         """.format(
             int(arribos_semana_pendientes.shape[0]),
-            int(arribos_semana_pendientes[arribos_semana_pendientes['T-TD'] == 'T'].shape[0]),
-            int(arribos_semana_pendientes[arribos_semana_pendientes['T-TD'] == 'TD'].shape[0]),
+            0, 
+            0
+            #int(arribos_semana_pendientes[arribos_semana_pendientes['T-TD'] == 'T'].shape[0]),
+            #int(arribos_semana_pendientes[arribos_semana_pendientes['T-TD'] == 'TD'].shape[0]),
         ),
         unsafe_allow_html=True
         )
