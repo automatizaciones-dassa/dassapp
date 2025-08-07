@@ -15,7 +15,7 @@ El repositorio está organizado de la siguiente manera:
 - **stream_trafico.py**: Script para la visualización de datos de tráfico.
 - **stream_trafico_historico.py**: Script para la visualización de datos históricos de tráfico.
 - **utils.py**: Script que contiene funciones utilizadas en los diferentes scripts.
-- **data/**: Carpeta que contiene los archivos CSV con los datos utilizados por las aplicaciones.
+- **supabase_connection.py**: conexión a base SQL alojada en Supabase.
 - **styles.css**: Archivo de estilos CSS para personalizar la apariencia de las aplicaciones.
 
 ## Contacto
@@ -23,4 +23,7 @@ El repositorio está organizado de la siguiente manera:
 Para cualquier consulta o soporte, por favor contacta a [auto@dassa.com.ar].
 
 ![DASSA Logo](logo.png)
+
+Web App desarrollada por [Facundo Lastra](https://github.com/marajadesantelmo)
+
 
