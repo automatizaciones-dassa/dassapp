@@ -20,10 +20,11 @@ El repositorio está organizado de la siguiente manera:
 
 ## Contacto
 
-Para cualquier consulta o soporte, por favor contacta a [auto@dassa.com.ar].
+Para cualquier consulta o soporte, por favor contacta a **auto@dassa.com.ar**
 
 ![DASSA Logo](logo.png)
 
-Web App desarrollada por [Facundo Lastra](https://github.com/marajadesantelmo)
+Desarrollado por [Facundo Lastra](https://github.com/marajadesantelmo)
+
 
 
