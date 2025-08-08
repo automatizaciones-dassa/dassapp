@@ -1,4 +1,4 @@
-# Repositorio de Scripts para Aplicaciones Streamlit de DASSA
+# Repositorio de Scripts para WebApp de DASSA
 
 Este repositorio contiene los scripts utilizados para el front end de las aplicaciones desarrolladas en Streamlit para DASSA. Estas aplicaciones están diseñadas para facilitar la visualización y gestión de datos operativos.
 
@@ -25,6 +25,7 @@ Para cualquier consulta o soporte, por favor contacta a **auto@dassa.com.ar**
 ![DASSA Logo](logo.png)
 
 Desarrollado por [Facundo Lastra](https://github.com/marajadesantelmo)
+
 
 
 
