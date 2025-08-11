@@ -40,7 +40,7 @@ def fetch_last_update():
 
 def show_page_balanza():
     # Load data
-    balanza, balanza_impo, balanza_expo, balanza_historico_impo, balanza_historico_expo, balanza_historico = fetch_data_balanza()
+    balanza, balanza_impo, balanza_expo = fetch_data_balanza()
     last_update = fetch_last_update()
 
     col_logo, col_title = st.columns([2, 5])
@@ -80,5 +80,6 @@ if __name__ == "__main__":
         show_page_balanza()
         time.sleep(60)  
         st.experimental_rerun()
+
 
 
