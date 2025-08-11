@@ -6,17 +6,17 @@ Este repositorio contiene los scripts utilizados para el front end de las aplica
 
 El repositorio está organizado de la siguiente manera:
 
-- **stream.py**: Script principal que maneja la navegación entre las diferentes páginas de la aplicación.
-- **stream_impo.py**: Script para la visualización de datos de importaciones.
-- **stream_expo.py**: Script para la visualización de datos de exportaciones.
-- **stream_balanza.py**: Script para la visualización de datos de balanza.
-- **stream_impo_historico.py**: Script para la visualización de datos históricos de importaciones.
-- **stream_expo_historico.py**: Script para la visualización de datos históricos de exportaciones.
-- **stream_trafico.py**: Script para la visualización de datos de tráfico.
-- **stream_trafico_historico.py**: Script para la visualización de datos históricos de tráfico.
-- **utils.py**: Script que contiene funciones utilizadas en los diferentes scripts.
+- **stream.py**: inicio.
+- **stream_impo.py**: visualización de datos de importaciones.
+- **stream_expo.py**:  visualización de datos de exportaciones.
+- **stream_balanza.py**:  datos de balanza.
+- **stream_impo_historico.py**:  datos históricos de importaciones.
+- **stream_expo_historico.py**:  datos históricos de exportaciones.
+- **stream_trafico.py**: datos de tráfico.
+- **stream_trafico_historico.py**: datos históricos de tráfico.
+- **utils.py**:funciones utilizadas en los diferentes scripts.
 - **supabase_connection.py**: conexión a base SQL alojada en Supabase.
-- **styles.css**: Archivo de estilos CSS para personalizar la apariencia de las aplicaciones.
+- **styles.css**: estilos CSS para personalizar la apariencia de las aplicaciones.
 
 ## Contacto
 
@@ -25,6 +25,7 @@ Para cualquier consulta o soporte, por favor contacta a **auto@dassa.com.ar**
 ![DASSA Logo](logo.png)
 
 Desarrollado por [Facundo Lastra](https://github.com/marajadesantelmo)
+
 
 
 
