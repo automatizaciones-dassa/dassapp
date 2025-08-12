@@ -96,7 +96,10 @@ def show_page_impo(allowed_clients=None):
         with col1_sub:
             st.subheader("Arribos Contenedores día de hoy")
         with col1_metric:
-            ctns_pendientes = arribos[(arribos['Estado'] != '-') & (~arribos['Estado'].str.contains('Arribado'))].shape[0]
+            if 'Estado' in arribos.columns:
+                ctns_pendientes = arribos[(arribos['Estado'] != '-') & (~arribos['Estado'].str.contains('Arribado'))].shape[0]
+            else:
+                ctns_pendientes = 0
             st.metric(label="CTNs pendientes", value=ctns_pendientes)
         st.dataframe(arribos.style.apply(highlight, axis=1).set_properties(subset=['Cliente'], **{'width': '20px'}), hide_index=True, use_container_width=True)
 
@@ -129,11 +132,12 @@ def show_page_impo(allowed_clients=None):
         st.write("Contenedores")
         st.dataframe(retiros_impo_ctn.style.apply(highlight, axis=1), 
                     hide_index=True, use_container_width=True)
-        st.write("CTNs Nacionales")
-        st.dataframe(retiros_impo_ctnnac.style.apply(highlight, axis=1), 
-                    column_config={'e-tally': st.column_config.LinkColumn('e-tally', display_text="\U0001F517",), 
-                                    'Salida': st.column_config.LinkColumn('Salida', display_text="\U0001F517",)},
-                    hide_index=True, use_container_width=True)
+        if not retiros_impo_ctnnac.empty:
+            st.write("CTNs Nacionales")
+            st.dataframe(retiros_impo_ctnnac.style.apply(highlight, axis=1), 
+                        column_config={'e-tally': st.column_config.LinkColumn('e-tally', display_text="\U0001F517",), 
+                                        'Salida': st.column_config.LinkColumn('Salida', display_text="\U0001F517",)},
+                        hide_index=True, use_container_width=True)
         if st.session_state['username'] != "plazoleta":
             st.write("Carga suelta")
             st.dataframe(retiros_impo_carga.style.apply(highlight, axis=1), 
