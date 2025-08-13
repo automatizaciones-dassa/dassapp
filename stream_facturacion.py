@@ -17,6 +17,21 @@ def show_page_facturacion(allowed_clients=None):
     if allowed_clients:
         facturacion = filter_dataframe_by_clients(facturacion, allowed_clients)
         saldos = filter_dataframe_by_clients(saldos, allowed_clients)
+    
+    total_neto = facturacion['neto_numerico'].sum()
+    importe_total = facturacion['total_numerico'].sum()
+    saldos['saldo_numerico'] = saldos['saldo_numerico'].astype(float)
+    total_saldo = saldos['saldo_numerico'].sum()
+
+    facturacion['Emision'] = pd.to_datetime(facturacion['Emision'], errors='coerce')
+    facturacion.sort_values(by='Emision', inplace=True)
+    facturacion['Vencimiento'] = pd.to_datetime(facturacion['Vencimiento'], errors='coerce')
+    facturacion['Emision'] = facturacion['Emision'].dt.strftime('%d/%m/%Y')
+    facturacion['Vencimiento'] = facturacion['Vencimiento'].dt.strftime('%d/%m/%Y')
+
+    saldos['Vencimiento'] = pd.to_datetime(saldos['Vencimiento'], errors='coerce')
+    saldos.sort_values(by='Vencimiento', inplace=True)
+    saldos['Vencimiento'] = saldos['Vencimiento'].dt.strftime('%d/%m/%Y')
 
     col_title, col_logo = st.columns([5, 1])
     with col_title:
@@ -28,15 +43,20 @@ def show_page_facturacion(allowed_clients=None):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Facturación últimos 90 días")
-        st.dataframe(facturacion, hide_index=True, use_container_width=True)
+        col1_sub, col1_metric = st.columns([6, 2])
+        with col1_sub:
+            st.subheader("Facturación últimos 90 días")
+        with col1_metric:
+            st.write(f"Neto: ${total_neto:,.0f}".replace(",", "."))
+            st.write(f"Total: ${importe_total:,.0f}".replace(",", "."))
+        st.dataframe(facturacion.drop(columns=['total_numerico', 'neto_numerico'], errors='ignore'), hide_index=True, use_container_width=True)
     with col2:
         col2_sub, col2_metric = st.columns([6, 2])
         with col2_sub:
             st.subheader("Saldos adeudados")
         with col2_metric:
-            st.write(f"Saldo total:")
-        st.dataframe(saldos, hide_index=True, use_container_width=True)
+            st.write(f"Saldo total: ${total_saldo:,.0f}".replace(",", "."))
+        st.dataframe(saldos.drop(columns=['saldo_numerico'], errors='ignore'), hide_index=True, use_container_width=True)
 
 if __name__ == "__main__":
     while True:
