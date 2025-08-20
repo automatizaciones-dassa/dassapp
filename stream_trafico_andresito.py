@@ -5,7 +5,7 @@ from datetime import datetime
 from utils import highlight
 from supabase_connection import fetch_table_data, update_data, update_data_by_index
 
-@st.cache_data(ttl=60) 
+@st.cache_data(ttl=300) 
 def fetch_data_trafico_andresito():
     arribos = fetch_table_data("trafico_arribos")
     arribos['Registro'] = pd.to_datetime(arribos['fecha_registro']) - pd.Timedelta(hours=3)
@@ -52,9 +52,21 @@ def fetch_data_trafico_andresito():
 def show_page_trafico_andresito():
     # Load data
     arribos, pendiente_desconsolidar, remisiones, arribos_expo_ctns = fetch_data_trafico_andresito()
+    
+    # Get today's date in the same format as Fecha column
+    today_str = datetime.now().strftime('%d/%m/%Y')
+    # Get today's date in dd/MM format for Dia column in remisiones
+    today_dia_str = datetime.now().strftime('%d/%m')
+    
     st.warning(
         "ATENCION: Esta página está en desarrollo. Algunas funcionalidades pueden no estar disponibles o no funcionar como se espera."
     )
+
+    coltitle1, col_title2 = st.columns([4,1])
+    with coltitle1:
+        st.header("Orden de Tráfico")
+    with col_title2:
+        st.markdown("[Ver planilla histórica en Google Sheets](https://docs.google.com/spreadsheets/d/129PyI0APvtPYEYwJIsDf-Uzy2YQR-0ojj-IG2etHCYs)")
     st.header("Traslado IMPO")
     col1, col2 = st.columns(2)
     with col1:
@@ -63,13 +75,17 @@ def show_page_trafico_andresito():
             st.subheader("Desde Puerto a DASSA")
             col1a1, col1b1 = st.columns([2, 1])
             with col1a1:
-                estado_options = ["Pendientes", "Todos"]
+                estado_options = ["Orden del día", "Todos"]
                 selected_estado = st.selectbox("Filtrar por Estado:", estado_options, key="estado_filter_arribos")
 
                 # Apply filter
                 filtered_arribos = arribos
-                if selected_estado == "Pendientes":
-                    filtered_arribos = arribos[~arribos["Estado_Normalizado"].str.contains("Arribado", na=False)]
+                if selected_estado == "Orden del día":
+                    # Include pendientes (not arribado) OR today's date
+                    filtered_arribos = arribos[
+                        (~arribos["Estado_Normalizado"].str.contains("Arribado", na=False)) |
+                        (arribos["Fecha"] == today_str)
+                    ]
                     
                 # Update the arribos variable for the rest of the function
                 arribos = filtered_arribos
@@ -115,13 +131,15 @@ def show_page_trafico_andresito():
             col2a1, col2b1 = st.columns([2, 1])
             with col2a1:
                 # Add filter by Estado for pendiente_desconsolidar table
-                estado_options_pendiente = ["Pendientes", "Todos"]
+                estado_options_pendiente = ["Orden del día", "Todos"]
                 selected_estado_pendiente = st.selectbox("Filtrar por Estado:", estado_options_pendiente, key="estado_filter_pendiente")
 
                 # Apply filter
                 filtered_pendiente_desconsolidar = pendiente_desconsolidar
-                if selected_estado_pendiente == "Pendientes":
-                    filtered_pendiente_desconsolidar = pendiente_desconsolidar[~pendiente_desconsolidar["Estado"].str.contains("Realizado", na=False)]
+                if selected_estado_pendiente == "Orden del día":
+                    # Include pendientes (not realizado) 
+                    filtered_pendiente_desconsolidar = pendiente_desconsolidar[
+                        (~pendiente_desconsolidar["Estado"].str.contains("Realizado", na=False)) ]
                     
                 # Update the pendiente_desconsolidar variable for the rest of the function
                 pendiente_desconsolidar = filtered_pendiente_desconsolidar
@@ -171,13 +189,17 @@ def show_page_trafico_andresito():
             col3a1, col3b1 = st.columns([2, 1])
             with col3a1:
                 # Add filter by Estado for arribos_expo_ctns table
-                estado_options_expo = ["Pendientes", "Todos"]
+                estado_options_expo = ["Orden del día", "Todos"]
                 selected_estado_expo = st.selectbox("Filtrar por Estado:", estado_options_expo, key="estado_filter_expo")
 
                 # Apply filter
                 filtered_arribos_expo_ctns = arribos_expo_ctns
-                if selected_estado_expo == "Pendientes":
-                    filtered_arribos_expo_ctns = arribos_expo_ctns[~arribos_expo_ctns["Estado"].str.contains("Realizado", na=False)]
+                if selected_estado_expo == "Orden del día":
+                    # Include pendientes (not realizado) OR today's date
+                    filtered_arribos_expo_ctns = arribos_expo_ctns[
+                        (~arribos_expo_ctns["Estado"].str.contains("Realizado", na=False)) |
+                        (arribos_expo_ctns["Fecha"] == today_str)
+                    ]
                     
                 # Update the arribos_expo_ctns variable for the rest of the function
                 arribos_expo_ctns = filtered_arribos_expo_ctns
@@ -225,13 +247,17 @@ def show_page_trafico_andresito():
             col4a1, col4b1 = st.columns([2, 1])
             with col4a1:
                 # Add filter by Estado for remisiones table using normalized Estado
-                estado_options_remisiones = ["Pendientes", "Todos"]
+                estado_options_remisiones = ["Orden del día", "Todos"]
                 selected_estado_remisiones = st.selectbox("Filtrar por Estado:", estado_options_remisiones, key="estado_filter_remisiones")
 
                 # Apply filter
                 filtered_remisiones = remisiones
-                if selected_estado_remisiones == "Pendientes":
-                    filtered_remisiones = remisiones[~remisiones["Estado_Normalizado"].str.contains("Realizado", na=False)]
+                if selected_estado_remisiones == "Orden del día":
+                    # Include pendientes (not realizado) OR today's date using Dia column
+                    filtered_remisiones = remisiones[
+                        (~remisiones["Estado_Normalizado"].str.contains("Realizado", na=False)) |
+                        (remisiones["Dia"] == today_dia_str)
+                    ]
                     
                 # Update the remisiones variable for the rest of the function
                 remisiones = filtered_remisiones
