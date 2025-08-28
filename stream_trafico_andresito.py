@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils import highlight
-from supabase_connection import fetch_table_data, update_data, update_data_by_index
+from supabase_connection import fetch_table_data, update_data, update_data_by_index, insert_data
 
 @st.cache_data(ttl=300) 
 def fetch_data_trafico_andresito():
@@ -11,8 +11,6 @@ def fetch_data_trafico_andresito():
     arribos['Registro'] = pd.to_datetime(arribos['fecha_registro']) - pd.Timedelta(hours=3)
     arribos['Registro'] = arribos['Registro'].dt.strftime('%d/%m/%Y %H:%M')
     arribos = arribos.drop(columns=['fecha_registro','key', 'Tiempo'], errors='ignore')
-    
-
     arribos['Fecha'] = pd.to_datetime(arribos['Fecha'], errors='coerce')
     arribos = arribos.sort_values('Fecha')
     arribos = arribos[arribos['Fecha'] > pd.to_datetime('2025-08-10')]
@@ -27,7 +25,6 @@ def fetch_data_trafico_andresito():
             lambda x: x[:2] + ":" + x[2:] if len(x) >= 4 and x.isdigit() else 
                      ('0' + x[0] + ':' + x[1:] if len(x) == 3 and x.isdigit() else x)
         )
-
 
     pendiente_desconsolidar = fetch_table_data("trafico_pendiente_desconsolidar")
     pendiente_desconsolidar['Registro'] = pd.to_datetime(pendiente_desconsolidar['fecha_registro']) - pd.Timedelta(hours=3)
@@ -60,29 +57,16 @@ def show_page_trafico_andresito():
     today_dia_str = datetime.now().strftime('%d/%m')
     
     st.warning(
-        "⚠️ Esta página está en desarrollo. Algunas funcionalidades pueden no estar disponibles o no funcionar como se espera."
-    )
-
+        "⚠️ Esta página está en desarrollo. Algunas funcionalidades pueden no estar disponibles o no funcionar como se espera.")
     st.markdown(
         "<h1 style='text-align: left; color: #2c3e50; margin-bottom: 0;'>Orden de Tráfico</h1>",
-        unsafe_allow_html=True
-    )
+        unsafe_allow_html=True)
     st.markdown(
         "<div style='text-align: right; margin-top: -40px;'><a href='https://docs.google.com/spreadsheets/d/129PyI0APvtPYEYwJIsDf-Uzy2YQR-0ojj-IG2etHCYs' target='_blank'>Ver planilla histórica en Google Sheets</a></div>",
-        unsafe_allow_html=True
-    )
+        unsafe_allow_html=True)
     st.markdown("---")
 
-    # Use tabs for each main section
-    tab_labels = [
-        "Traslados IMPO",
-        "Vacíos IMPO a devolver",
-        "Retiros Vacíos EXPO",
-        "Remisiones DASSA a puerto"
-    ]
-
-    st.subheader("Desde Puerto a DASSA")
-
+    st.subheader("I. IMPO Desde Puerto a DASSA")
     col_table1, col_assign1 = st.columns([3, 1])
     with col_table1:
         with st.container():
@@ -146,8 +130,22 @@ def show_page_trafico_andresito():
                         st.error(f"Error al asignar chofer: {e}")
                 else:
                     st.warning("Por favor ingrese el nombre del chofer")
+            
+            st.markdown("**Asignar Observaciones**")
+            observaciones_arribos = st.text_area("Observaciones:", key="observaciones_arribos")
+            if st.button("Asignar Observaciones", key="assign_observaciones_arribos"):
+                if observaciones_arribos.strip():
+                    try:
+                        update_data("trafico_arribos", selected_arribo_id, {"Observaciones": observaciones_arribos.strip()})
+                        st.success(f"Observaciones asignadas al registro ID {selected_arribo_id}")
+                        st.cache_data.clear()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error al asignar observaciones: {e}")
+                else:
+                    st.warning("Por favor ingrese las observaciones")
 
-    st.subheader("Vacíos IMPO a devolver")
+    st.subheader("V. Vacíos IMPO a devolver")
     with st.container():
         col_table2, col_assign2 = st.columns([3, 1])
         with col_table2:
@@ -209,6 +207,20 @@ def show_page_trafico_andresito():
                             st.error(f"Error al asignar chofer: {e}")
                     else:
                         st.warning("Por favor ingrese el nombre del chofer")
+                st.markdown("**Asignar Observaciones**")
+                observaciones_pendiente = st.text_area("Observaciones:", key="observaciones_pendiente")
+                if st.button("Asignar Observaciones", key="assign_observaciones_pendiente"):
+                    if observaciones_pendiente.strip():
+                        try:
+                            update_data("trafico_pendiente_desconsolidar", selected_pendiente_id, {"Observaciones": observaciones_pendiente.strip()})
+                            st.success(f"Observaciones asignadas al registro ID {selected_pendiente_id}")
+                            st.cache_data.clear()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al asignar observaciones: {e}")
+                    else:
+                        st.warning("Por favor ingrese las observaciones")
+                        
                 st.markdown("**Asignar Fecha y Hora Fin**")
                 fecha_fin_pte = st.date_input("Fecha fin:", key="fecha_fin_pendiente")
                 hora_fin_pte = st.time_input("Hora fin:", key="hora_fin_pendiente")
@@ -291,6 +303,20 @@ def show_page_trafico_andresito():
                     else:
                         st.warning("Por favor ingrese el nombre del chofer")
 
+                st.markdown("**Asignar Observaciones**")
+                observaciones_expo = st.text_area("Observaciones:", key="observaciones_expo")
+                if st.button("Asignar Observaciones", key="assign_observaciones_expo"):
+                    if observaciones_expo.strip():
+                        try:
+                            update_data("trafico_arribos_expo_ctns", selected_expo_id, {"Observaciones": observaciones_expo.strip()})
+                            st.success(f"Observaciones asignadas al registro ID {selected_expo_id}")
+                            st.cache_data.clear()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al asignar observaciones: {e}")
+                    else:
+                        st.warning("Por favor ingrese las observaciones")
+
     st.subheader("Remisiones de DASSA a puerto")
     with st.container():
         col_table4, col_assign4a = st.columns([3, 1])
@@ -356,6 +382,21 @@ def show_page_trafico_andresito():
                     st.error(f"Error al asignar chofer: {e}")
             else:
                 st.warning("Por favor ingrese el nombre del chofer")
+                
+        st.markdown("**Asignar Observaciones**")
+        observaciones_remisiones = st.text_area("Observaciones:", key="observaciones_remisiones")
+        if st.button("Asignar Observaciones", key="assign_observaciones_remisiones"):
+            if observaciones_remisiones.strip():
+                try:
+                    update_data("trafico_remisiones", selected_remision_id, {"Observaciones trafico": observaciones_remisiones.strip()})
+                    st.success(f"Observaciones asignadas al registro ID {selected_remision_id}")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al asignar observaciones: {e}")
+            else:
+                st.warning("Por favor ingrese las observaciones")
+                
         st.markdown("**Asignar Fecha y Hora Fin**")
         fecha_fin = st.date_input("Fecha fin:", key="fecha_fin_remision")
         hora_fin = st.time_input("Hora fin:", key="hora_fin_remision")
@@ -371,6 +412,93 @@ def show_page_trafico_andresito():
                     st.error(f"Error al asignar Fecha y Hora Fin: {e}")
             else:
                 st.warning("Por favor seleccione fecha y hora")
+
+    # Manual Data Entry Section
+    st.markdown("---")
+    st.subheader("Agregar Registro Manual")
+    
+    # Table selection
+    table_options = {
+        "Traslados IMPO": "trafico_arribos",
+        "Vacíos IMPO a devolver": "trafico_pendiente_desconsolidar", 
+        "Retiros Vacíos EXPO": "trafico_arribos_expo_ctns",
+        "Remisiones DASSA a puerto": "trafico_remisiones"
+    }
+    
+    selected_table_name = st.selectbox(
+        "Seleccionar tabla para agregar datos:",
+        options=list(table_options.keys()),
+        key="table_selection"
+    )
+    
+    selected_table = table_options[selected_table_name]
+    
+    # Get the corresponding dataframe
+    if selected_table == "trafico_arribos":
+        df_columns = arribos.columns.tolist()
+    elif selected_table == "trafico_pendiente_desconsolidar":
+        df_columns = pendiente_desconsolidar.columns.tolist()
+    elif selected_table == "trafico_arribos_expo_ctns":
+        df_columns = arribos_expo_ctns.columns.tolist()
+    else:  # trafico_remisiones
+        df_columns = remisiones.columns.tolist()
+    
+    # Remove id and auto-generated columns
+    excluded_columns = ['id', 'Registro', 'Solicitud', 'fecha_registro', 'key', 'Estado_Normalizado']
+    form_columns = [col for col in df_columns if col not in excluded_columns]
+    
+    st.markdown(f"**Agregar nuevo registro a: {selected_table_name}**")
+    
+    with st.form(f"add_record_{selected_table}"):
+        form_data = {}
+        
+        # Create form fields for each column
+        col1, col2 = st.columns(2)
+        
+        for i, column in enumerate(form_columns):
+            with col1 if i % 2 == 0 else col2:
+                if column in ['Fecha', 'Dia']:
+                    if column == 'Fecha':
+                        form_data[column] = st.date_input(f"{column}:", key=f"form_{column}_{selected_table}")
+                    else:  # Dia column for remisiones
+                        form_data[column] = st.text_input(f"{column} (DD/MM):", key=f"form_{column}_{selected_table}")
+                elif column in ['Turno', 'Hora']:
+                    form_data[column] = st.time_input(f"{column}:", key=f"form_{column}_{selected_table}")
+                elif column in ['Estado', 'Cliente', 'Contenedor', 'Booking', 'chofer']:
+                    form_data[column] = st.text_input(f"{column}:", key=f"form_{column}_{selected_table}")
+                elif column in ['Peso', 'Cantidad']:
+                    form_data[column] = st.number_input(f"{column}:", min_value=0.0, key=f"form_{column}_{selected_table}")
+                elif 'tally' in column.lower():
+                    form_data[column] = st.text_input(f"{column} (URL):", key=f"form_{column}_{selected_table}")
+                else:
+                    form_data[column] = st.text_input(f"{column}:", key=f"form_{column}_{selected_table}")
+        
+        submitted = st.form_submit_button("Agregar Registro")
+        
+        if submitted:
+            # Prepare data for insertion
+            insert_data_dict = {}
+            
+            for column, value in form_data.items():
+                if value is not None and value != "":
+                    if column == 'Fecha' and hasattr(value, 'strftime'):
+                        insert_data_dict[column] = value.strftime('%d/%m/%Y')
+                    elif column in ['Turno', 'Hora'] and hasattr(value, 'strftime'):
+                        insert_data_dict[column] = value.strftime('%H%M') if column == 'Turno' else value.strftime('%H:%M')
+                    else:
+                        insert_data_dict[column] = str(value)
+            
+            # Add timestamp for registro
+            current_time = datetime.now()
+            insert_data_dict['fecha_registro'] = current_time.isoformat()
+            
+            try:
+                insert_data(selected_table, insert_data_dict)
+                st.success(f"Registro agregado exitosamente a {selected_table_name}")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al agregar registro: {e}")
 
 
 
