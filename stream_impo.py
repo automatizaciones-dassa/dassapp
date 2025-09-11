@@ -17,6 +17,12 @@ def fetch_data_impo():
         arribos = arribos.sort_values(by="Turno")
         arribos['Chofer'] = arribos['Chofer'].fillna('-')
         arribos['Chofer'] = arribos['Chofer'].str.title()
+        # Move Dimension column after Tipo CNT if it exists
+        cols = arribos.columns.tolist()
+        tipo_cnt_idx = cols.index('Tipo CNT')
+        cols.remove('Dimension')
+        cols.insert(tipo_cnt_idx + 1, 'Dimension')
+        arribos = arribos[cols]
         verificaciones_impo = verificaciones_impo.drop(columns=['Hora'])
         pendiente_desconsolidar['Vto. Vacio'] = pd.to_datetime(pendiente_desconsolidar['Vto. Vacio'], format='%d/%m', errors='coerce')
         pendiente_desconsolidar = pendiente_desconsolidar.sort_values(by='Vto. Vacio')
@@ -59,7 +65,7 @@ def fetch_last_update():
             return "No disponible"
     return "No disponible"
 
-def show_page_impo(allowed_clients=None):
+def show_page_impo(allowed_clients=None, apply_mudanceras_filter=False):
     # Load data
     arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm= fetch_data_impo()
     last_update = fetch_last_update()
@@ -74,8 +80,9 @@ def show_page_impo(allowed_clients=None):
         existente_plz = filter_dataframe_by_clients(existente_plz, allowed_clients)
         existente_alm = filter_dataframe_by_clients(existente_alm, allowed_clients)
     
-    mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
-    if st.session_state['username'] == "mudancera":
+    # Apply mudanceras filter if needed
+    if apply_mudanceras_filter:
+        mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
         arribos = arribos[arribos['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]
         pendiente_desconsolidar = pendiente_desconsolidar[pendiente_desconsolidar['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]
         verificaciones_impo = verificaciones_impo[verificaciones_impo['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]

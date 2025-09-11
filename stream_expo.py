@@ -22,6 +22,8 @@ def fetch_data_expo():
         arribos_expo_ctns['Fecha'] = pd.to_datetime(arribos_expo_ctns['Fecha'], format='%d/%m')
         arribos_expo_ctns = arribos_expo_ctns.sort_values(by="Fecha")
         arribos_expo_ctns['Fecha'] = arribos_expo_ctns['Fecha'].dt.strftime('%d/%m')
+        arribos_expo_ctns['Chofer'] = arribos_expo_ctns['Chofer'].fillna('-')
+        arribos_expo_ctns['Chofer'] = arribos_expo_ctns['Chofer'].str.title()
         verificaciones_expo = verificaciones_expo[verificaciones_expo['Dia'] != '-']
         otros_expo = otros_expo[otros_expo['Dia'] != '-']
         remisiones = remisiones[remisiones['Dia'] != '-']
@@ -37,6 +39,8 @@ def fetch_data_expo():
             remisiones['Hora'] = remisiones['Hora'].astype(str).str[:5]
             remisiones['Hora'] = remisiones['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
             remisiones['Dia'] = remisiones['Dia'].dt.strftime('%d/%m')
+            remisiones['Chofer'] = remisiones['Chofer'].fillna('-')
+            remisiones['Chofer'] = remisiones['Chofer'].str.title()
             remisiones['Volumen'] = remisiones['Volumen'].round(0).astype(int)
             cols = remisiones.columns.tolist()
             cols.insert(1, cols.pop(cols.index('Hora')))
@@ -62,7 +66,7 @@ def fetch_last_update():
 
     
 
-def show_page_expo(allowed_clients=None):
+def show_page_expo(allowed_clients=None, apply_mudanceras_filter=False):
     # Load data
     arribos_expo_carga, arribos_expo_ctns, verificaciones_expo, otros_expo, remisiones, pendiente_consolidar, listos_para_remitir, vacios_disponibles, a_consolidar = fetch_data_expo()
     last_update = fetch_last_update()
@@ -79,8 +83,9 @@ def show_page_expo(allowed_clients=None):
         vacios_disponibles = filter_dataframe_by_clients(vacios_disponibles, allowed_clients)
         a_consolidar = filter_dataframe_by_clients(a_consolidar, allowed_clients)
     
-    mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
-    if st.session_state['username'] == "mudancera":
+    # Apply mudanceras filter if needed
+    if apply_mudanceras_filter:
+        mudanceras_filter = ['Mercovan', 'Lift Van', 'Rsm', 'Fenisan', 'Moniport', 'Bymar', 'Noah']
         arribos_expo_carga = arribos_expo_carga[arribos_expo_carga['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]
         arribos_expo_ctns = arribos_expo_ctns[arribos_expo_ctns['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]
         verificaciones_expo = verificaciones_expo[verificaciones_expo['Cliente'].str.contains('|'.join(mudanceras_filter), case=False, na=False)]

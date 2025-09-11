@@ -15,6 +15,7 @@ import stream_trafico_andresito
 import stream_trafico2
 import stream_facturacion
 import stream_choferes
+import stream_ingresos_retiros
 from streamlit_autorefresh import st_autorefresh
 from streamlit_option_menu import option_menu
 from streamlit_cookies_manager import EncryptedCookieManager
@@ -80,10 +81,13 @@ else:
     if es_cliente == "1":
         allowed_pages = ["IMPO", "EXPO", "Facturación", "Logout"]
         icons = ["arrow-down-circle", "arrow-up-circle", "receipt", "box-arrow-right"]
-    elif st.session_state['username'] in ["deposito", "nicolasnunez", "francoperez", "federico", 
-                        "estigarribiaclaudio", "fabian.fuentes", "marcos.avalos", "guardia"]:
+    elif st.session_state['username'] in ["deposito", "francoperez", "federico", 
+                        "fabian.fuentes", "marcos.avalos", "guardia"]:
         allowed_pages = ["IMPO", "EXPO", "Camiones", "Logout"]
         icons = ["arrow-down-circle", "arrow-up-circle", "truck", "box-arrow-right"]
+    elif st.session_state['username'] == "estigarribiaclaudio":
+        allowed_pages = ["Ingresos y Retiros", "Logout"]
+        icons = ["arrow-up-arrow-down", "box-arrow-right"]
     elif st.session_state['username'] == "trafico":
         allowed_pages = ["Tráfico", "Logout"]
         icons = ["car", "box-arrow-right"]
@@ -93,8 +97,11 @@ else:
     elif st.session_state['username'] == "andresito":
         allowed_pages = ["Andresito", "Gestión Choferes", "Logout"]
         icons = ["car", "people", "box-arrow-right"]
-    elif st.session_state['username'] in ["plazoleta", "mudancera"]:
-        allowed_pages = ["IMPO", "EXPO", "Balanza", "Plazoleta", "Camiones", "Logout"]
+    elif st.session_state['username'] in ["plazoleta", "mudancera", "nicolasnunez"]:
+        allowed_pages = ["IMPO", "EXPO", "Balanza", "Logout"]
+        icons = ["arrow-down-circle", "arrow-up-circle", "book", "box-arrow-right"]
+    elif st.session_state['username'] in ["federico"]:
+        allowed_pages = ["EXPO", "Balanza", "Logout"]
         icons = ["arrow-down-circle", "arrow-up-circle", "book", "building", "truck", "box-arrow-right"]
     else:
         allowed_pages = ["IMPO", "EXPO", "Balanza", "Plazoleta", "Camiones", "IMPO - histórico", "EXPO - histórico", "Gestión de usuarios", "Gestión Choferes", "Logout"]
@@ -110,10 +117,12 @@ else:
     )
     if page_selection == "IMPO":
         allowed_clients = get_allowed_clients(st.session_state['username'])
-        stream_impo.show_page_impo(allowed_clients)  
+        apply_mudanceras_filter = st.session_state['username'] in ["mudancera", "nicolasnunez"]
+        stream_impo.show_page_impo(allowed_clients, apply_mudanceras_filter)  
     elif page_selection == "EXPO":
         allowed_clients = get_allowed_clients(st.session_state['username'])
-        stream_expo.show_page_expo(allowed_clients)
+        apply_mudanceras_filter = st.session_state['username'] in ["mudancera", "nicolasnunez"]
+        stream_expo.show_page_expo(allowed_clients, apply_mudanceras_filter)
     elif page_selection == "Facturación":
         allowed_clients = get_allowed_clients(st.session_state['username'])
         stream_facturacion.show_page_facturacion(allowed_clients)
@@ -126,7 +135,8 @@ else:
     elif page_selection == "Gestión Choferes":
         stream_choferes.show_page_choferes()
     elif page_selection == "Balanza":
-        stream_balanza.show_page_balanza()
+        apply_mudanceras_filter = st.session_state['username'] in ["mudancera", "nicolasnunez"]
+        stream_balanza.show_page_balanza(apply_mudanceras_filter)
     elif page_selection == "Plazoleta":
         stream_plazoleta.show_page_plazoleta()
     elif page_selection == "IMPO - histórico":
@@ -137,6 +147,8 @@ else:
         stream_camiones.show_page_camiones()
     elif page_selection == "Gestión de usuarios":
         stream_usuarios.show_page_usuarios()
+    elif page_selection == "Ingresos y Retiros":
+        stream_ingresos_retiros.show_page_ingresos_retiros()
 
     elif page_selection == "Logout":
         cookies.pop("logged_in", None)
