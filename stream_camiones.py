@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from supabase_connection import fetch_table_data, delete_data, soft_delete_data
+from supabase_connection import fetch_table_data, delete_data, soft_delete_data, fetch_table_data_last90rows
 from utils import highlight
 
 def fetch_preingreso_data():
@@ -25,16 +25,31 @@ def fetch_preingreso_data():
         else:
             preingreso_data = pd.DataFrame()
         
+        preingreso_historico = fetch_table_data_last90rows("preingreso_historico")
+        if not preingreso_historico.empty:
+            preingreso_historico = preingreso_historico[preingreso_historico['del'].isna()]
+            preingreso_historico = preingreso_historico.drop(columns=['del'])
+            preingreso_historico.columns = column_names
+            preingreso_historico = preingreso_historico.drop(columns=['Estado'])
+            preingreso_historico['link'] = preingreso_historico['Celular WhatsApp'].str.replace(" ", "").apply(
+                lambda x: f"http://wa.me/549{x}" if x.isdigit() else None)
+            preingreso_historico['Hora'] = pd.to_datetime(preingreso_historico['Hora']) - pd.Timedelta(hours=3)
+            preingreso_historico['Hora'] = preingreso_historico['Hora'].dt.strftime('%H:%M')
+
+            display_historico = preingreso_historico[["Fecha", "Número Fila", "Hora", "Cliente/Mercadería", "Nombre Chofer", "Celular WhatsApp", "link", 
+                                        "DNI Chofer","Patente Camión", "Patente Acoplado", "Remito/Permiso Embarque", "Obs/Carga/Lote/Partida"]]
+            display_historico.sort_values(by=['Fecha', 'Número Fila'], ascending=[False, True], inplace=True)
+
     except Exception as e:
         st.error(f"Error al cargar datos: {e}")
         preingreso_data = pd.DataFrame()
         display_data = pd.DataFrame()
-    return preingreso_data, display_data
+    return preingreso_data, display_data, display_historico
 
 def show_page_camiones():
     st.set_page_config(page_title="Camiones - Preingreso", layout="wide")
     
-    preingreso_data, display_data = fetch_preingreso_data()
+    preingreso_data, display_data, display_historico = fetch_preingreso_data()
 
     col1, col2 = st.columns([7, 1])
     with col1:
@@ -61,7 +76,7 @@ def show_page_camiones():
         )
 
         st.markdown("---")
-        st.subheader("Eliminar Registro")
+        st.subheader("Eliminar Registro del día de Hoy")
         
         col_delete1, col_delete2, col_delete3 = st.columns([1, 1, 2])
         
@@ -83,4 +98,39 @@ def show_page_camiones():
                     st.error(f"Error al eliminar registro: {e}")
         
         st.markdown("---")
+        st.subheader("Datos Históricos")
+        # Add filters for historical data
+        col_filter1, col_filter2 = st.columns(2)
 
+        with col_filter1:
+            # Filter by date
+            available_dates = sorted(display_historico['Fecha'].unique(), reverse=True)
+            selected_date = st.selectbox(
+                "Filtrar por fecha:",
+                options=["Todas"] + available_dates,
+                key="date_filter"
+            )
+
+        with col_filter2:
+            # Filter by driver name
+            available_drivers = sorted(display_historico['Nombre Chofer'].unique())
+            selected_driver = st.selectbox(
+                "Filtrar por chofer:",
+                options=["Todos"] + available_drivers,
+                key="driver_filter"
+            )
+
+        # Apply filters
+        filtered_data = display_historico.copy()
+        if selected_date != "Todas":
+            filtered_data = filtered_data[filtered_data['Fecha'] == selected_date]
+        if selected_driver != "Todos":
+            filtered_data = filtered_data[filtered_data['Nombre Chofer'] == selected_driver]
+
+        # Display filtered data
+        st.write(f"Mostrando {len(filtered_data)} registros")
+        st.dataframe(
+            filtered_data.style.set_properties(subset=['link'], **{'width': '20px'}),
+            column_config={'link': st.column_config.LinkColumn('link', display_text="\U0001F517")},
+            hide_index=True, use_container_width=True
+        )
