@@ -85,7 +85,11 @@ def show_page_trafico_andresito():
         "<h1 style='text-align: left; color: #2c3e50; margin-bottom: 0;'>Orden de Tráfico</h1>",
         unsafe_allow_html=True)
     st.markdown(
-        "<div style='text-align: right; margin-top: -40px;'><a href='https://docs.google.com/spreadsheets/d/129PyI0APvtPYEYwJIsDf-Uzy2YQR-0ojj-IG2etHCYs' target='_blank'>Ver planilla histórica en Google Sheets</a></div>",
+        "<div style='text-align: right; margin-top: -40px;'>"
+        "<a href='https://docs.google.com/spreadsheets/d/129PyI0APvtPYEYwJIsDf-Uzy2YQR-0ojj-IG2etHCYs' target='_blank'>Planilla quincena anterior</a> | "
+        "<a href='https://docs.google.com/spreadsheets/d/1BSLrxeew9ATpxZBS0rGqXOOFKlQyGISsXOmmZl89h88' target='_blank'>Planilla quincena actual</a> | "
+        "<a href='https://docs.google.com/spreadsheets/d/1B5dLZTVbWs3ccs1Zl5YcKyGmfh-wNIHJVjSdYh6S5gc' target='_blank'>Planilla historico</a>"
+        "</div>",
         unsafe_allow_html=True)
     st.markdown("---")
 
@@ -517,7 +521,7 @@ def show_page_trafico_andresito():
             otros_filtered = filtered_otros
             otros_display = otros_filtered.copy()
             
-            if not otros_display.empty:
+            if not otros_display.empty and 'id' in otros_display.columns:
                 otros_display = otros_display.rename(columns={'Registro': 'Solicitud'})
                 otros_display['ID'] = otros_display['id'].apply(lambda x: f"O{x:03d}")
                 cols = ['ID'] + [col for col in otros_display.columns if col != 'ID']
@@ -532,7 +536,7 @@ def show_page_trafico_andresito():
             )
             
         with col_assign5:
-            if not otros_filtered.empty:
+            if not otros_filtered.empty and 'id' in otros_filtered.columns:
                 st.markdown("**Asignar Chofer**")
                 selected_otros_id = st.selectbox(
                     "Registro:",
