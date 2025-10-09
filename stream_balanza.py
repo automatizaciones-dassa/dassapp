@@ -7,6 +7,9 @@ from utils import highlight, generar_comprobante
 @st.cache_data(ttl=60)
 def fetch_data_balanza():
     balanza = fetch_table_data("balanza_data")
+    cols = list(balanza.columns)
+    cols.insert(2, cols.pop(cols.index("Booking")))
+    balanza = balanza[cols]
     if balanza.empty:
         column_names = [
             "ID Pesada", "Cliente", "CUIT Cliente", "ATA", "CUIT ATA", "Contenedor", "Entrada", "Salida", 
@@ -20,12 +23,10 @@ def fetch_data_balanza():
     balanza_impo = balanza_impo.drop(columns=['tipo_oper'], errors='ignore')
     balanza_expo = balanza[balanza['tipo_oper'] == 'Exportacion']
     balanza_expo = balanza_expo.drop(columns=['tipo_oper'], errors='ignore')
-    columns_impo_historico = ['ID Pesada', 'Fecha', 'Cliente', 'ATA', 'Contenedor', 'Entrada', 'Salida', 'Peso Bruto', 'Peso Tara',
-        'Peso Neto', 'Tara CNT', 'Peso Mercadería', 'Descripción', 'Patente Chasis', 'Patente Semi', 'Chofer', 'DNI',
-        'Booking', 'Precinto', 'Tipo Doc', 'Estado']
-    columns_expo_historico = ['ID Pesada', 'Fecha', 'Cliente', 'ATA',  'Entrada', 'Salida', 'Peso Bruto', 'Peso Tara',
-        'Peso Neto', 'Peso Mercadería', 'Descripción', 'Patente Chasis', 'Patente Semi', 'Chofer', 'DNI', 'Observaciones',
-        'Booking', 'Permiso Emb.', 'Tipo Doc', 'Estado']
+    columns_impo_historico = ['ID Pesada', 'Fecha', 'Booking', 'Cliente', 'ATA', 'Contenedor', 'Entrada', 'Salida', 'Peso Bruto', 'Peso Tara',
+        'Peso Neto', 'Tara CNT', 'Peso Mercadería', 'Descripción', 'Patente Chasis', 'Patente Semi', 'Chofer', 'DNI', 'Precinto', 'Tipo Doc', 'Estado']
+    columns_expo_historico = ['ID Pesada', 'Fecha', 'Cliente',   'Booking', 'ATA',  'Entrada', 'Salida', 'Peso Bruto', 'Peso Tara',
+        'Peso Neto', 'Peso Mercadería', 'Descripción', 'Patente Chasis', 'Patente Semi', 'Chofer', 'DNI', 'Observaciones', 'Permiso Emb.', 'Tipo Doc', 'Estado']
     try:
         balanza_historico = fetch_table_data("balanza_historico")
         balanza_historico['DNI'] = balanza_historico['DNI'].fillna('-').astype(str).str.replace('.0', '', regex=False)
@@ -45,15 +46,16 @@ def fetch_data_balanza():
         balanza_historico_expo = pd.DataFrame(columns=columns_expo_historico)
     return balanza, balanza_impo, balanza_expo, balanza_historico_impo, balanza_historico_expo, balanza_historico
 
-@st.cache_data(ttl=60)
 def fetch_last_update():
     update_log = fetch_table_data("update_log")
     if not update_log.empty:
+        last_update = update_log[update_log['table_name'] == 'Balanza']['last_update'].max()
         try:
-            last_update = update_log[update_log['table_name'] == 'Balanza']['last_update'].max()
-            return pd.to_datetime(last_update).strftime("%d/%m/%Y %H:%M")
-        except Exception as e:
-            st.error(f"Error al obtener la última actualización: {e}")
+            datetime_obj = pd.to_datetime(last_update)
+            if pd.isna(datetime_obj):
+                return "No disponible"
+            return datetime_obj.strftime("%d/%m/%Y %H:%M")
+        except (ValueError, TypeError):
             return "No disponible"
     return "No disponible"
 

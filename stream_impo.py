@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from utils import highlight, filter_dataframe_by_clients    
 from supabase_connection import fetch_table_data
+import plotly.express as px
 @st.cache_data(ttl=60) 
 def fetch_data_impo():
     arribos = fetch_table_data("arribos")
@@ -13,6 +14,9 @@ def fetch_data_impo():
     otros_impo = fetch_table_data("otros_impo")
     existente_plz = fetch_table_data("existente_plz")
     existente_alm = fetch_table_data("existente_alm")
+    grafico_arribos_impo = fetch_table_data("grafico_arribos_impo")
+    grafico_verificaciones_impo = fetch_table_data("grafico_verificaciones_impo")
+    grafico_retiros_impo = fetch_table_data("grafico_retiros_impo")
     try:
         arribos = arribos.sort_values(by="Turno")
         arribos['Chofer'] = arribos['Chofer'].fillna('-')
@@ -49,7 +53,7 @@ def fetch_data_impo():
     except Exception:
         pass
 
-    return arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm
+    return arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm, grafico_arribos_impo, grafico_verificaciones_impo, grafico_retiros_impo
 
 @st.cache_data(ttl=60)
 def fetch_last_update():
@@ -67,7 +71,7 @@ def fetch_last_update():
 
 def show_page_impo(allowed_clients=None, apply_mudanceras_filter=False):
     # Load data
-    arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm= fetch_data_impo()
+    arribos, pendiente_desconsolidar, verificaciones_impo, retiros_impo, otros_impo, existente_plz, existente_alm, grafico_arribos_impo, grafico_verificaciones_impo, grafico_retiros_impo= fetch_data_impo()
     last_update = fetch_last_update()
     
     # Apply client filtering first
@@ -183,6 +187,126 @@ def show_page_impo(allowed_clients=None, apply_mudanceras_filter=False):
                 hide_index=True, use_container_width=True)
     
     st.markdown("<hr>", unsafe_allow_html=True)
+
+    if st.session_state['username'] == "DASSA":
+        st.header("Estadisticas IMPO")
+        st.subheader("Operaciones con Contenedores")
+        col1_grafico, col2_grafico = st.columns(2)
+        with col1_grafico:
+            grafico_arribos_impo['Fecha'] = pd.to_datetime(grafico_arribos_impo['Fecha'])
+            grafico_arribos_impo = grafico_arribos_impo.sort_values(['Fecha', 'Estado'])
+            grafico_arribos_impo['Fecha'] = grafico_arribos_impo['Fecha'].dt.strftime('%d/%m')
+            
+            # Calculate daily average for arribos
+            total_arribos = grafico_arribos_impo['Arribos'].sum()
+            num_days = grafico_arribos_impo['Fecha'].nunique()
+            avg_arribos = round(total_arribos / num_days, 1) if num_days > 0 else 0
+            
+            col_title1, col_metric1 = st.columns([3, 1])
+            with col_title1:
+                st.markdown("**Arribos CTNs por día**")
+            with col_metric1:
+                st.metric(label="Promedio diario", value=avg_arribos)
+            
+            fig = px.bar(
+                grafico_arribos_impo,
+                x='Fecha',
+                y='Arribos',
+                color='Estado',
+                color_discrete_map={
+                    'Arribado': '#4CAF50', 'Pendiente': '#FFA500'})
+
+            fig.update_layout(
+                legend_title='Estado',
+                barmode='stack',
+                yaxis=dict(range=[0, 45]),
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                xaxis={'categoryorder': 'array', 'categoryarray': sorted(grafico_arribos_impo['Fecha'].unique(), key=lambda x: pd.to_datetime(x, format='%d/%m'))})
+            st.plotly_chart(fig, use_container_width=True)
+
+            grafico_retiros_impo['Fecha'] = pd.to_datetime(grafico_retiros_impo['Fecha'])
+            grafico_retiros_impo = grafico_retiros_impo.sort_values(['Fecha', 'Estado'])
+            grafico_retiros_impo['Fecha'] = grafico_retiros_impo['Fecha'].dt.strftime('%d/%m')
+            grafico_retiros_impo_ctns = grafico_retiros_impo[grafico_retiros_impo['Envase'] == "Contenedor"]
+            
+            # Calculate daily average for retiros
+            total_retiros = grafico_retiros_impo_ctns['Retiros'].sum()
+            num_days_retiros = grafico_retiros_impo_ctns['Fecha'].nunique()
+            avg_retiros = round(total_retiros / num_days_retiros, 1) if num_days_retiros > 0 else 0
+            
+            col_title2, col_metric2 = st.columns([3, 1])
+            with col_title2:
+                st.markdown("**Retiros CTNs por día**")
+            with col_metric2:
+                st.metric(label="Promedio diario", value=avg_retiros)
+            
+            fig3 = px.bar(
+                grafico_retiros_impo_ctns,
+                x='Fecha',
+                y='Retiros',
+                color='Estado',
+                color_discrete_map={'Realizado': '#4CAF50', 'Pendiente': '#FFA500'})
+            fig3.update_layout(
+                legend_title='Estado',
+                barmode='stack',
+                yaxis=dict(range=[0, 45]),
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                xaxis={'categoryorder': 'array', 'categoryarray': sorted(grafico_retiros_impo_ctns['Fecha'].unique(), key=lambda x: pd.to_datetime(x, format='%d/%m'))})
+            st.plotly_chart(fig3, use_container_width=True)
+
+        with col2_grafico:
+            grafico_verificaciones_impo['Fecha'] = pd.to_datetime(grafico_verificaciones_impo['Fecha'])
+            grafico_verificaciones_impo = grafico_verificaciones_impo.sort_values(['Fecha', 'Estado'])
+            grafico_verificaciones_impo['Fecha'] = grafico_verificaciones_impo['Fecha'].dt.strftime('%d/%m')
+            grafico_verificaciones_impo_ctns = grafico_verificaciones_impo[grafico_verificaciones_impo['Envase'] == "Contenedor"]
+            
+            # Calculate daily average for verificaciones
+            total_verificaciones = grafico_verificaciones_impo_ctns['Verificaciones IMPO'].sum()
+            num_days_verif = grafico_verificaciones_impo_ctns['Fecha'].nunique()
+            avg_verificaciones = round(total_verificaciones / num_days_verif, 1) if num_days_verif > 0 else 0
+            
+            col_title3, col_metric3 = st.columns([3, 1])
+            with col_title3:
+                st.markdown("**Verificaciones CTNs por día**")
+            with col_metric3:
+                st.metric(label="Promedio diario", value=avg_verificaciones)
+            
+            fig2 = px.bar(
+                grafico_verificaciones_impo_ctns,
+                x='Fecha',
+                y='Verificaciones IMPO',
+                color='Estado',
+                color_discrete_map={'Realizado': '#4CAF50', 'Pendiente': '#FFA500'})
+
+            fig2.update_layout(
+                legend_title='Estado',
+                barmode='stack',
+                yaxis=dict(range=[0, 45]),
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                xaxis={'categoryorder': 'array', 'categoryarray': sorted(grafico_verificaciones_impo_ctns['Fecha'].unique(), key=lambda x: pd.to_datetime(x, format='%d/%m'))})
+            st.plotly_chart(fig2, use_container_width=True)
+
 
 # Run the show_page function
 if __name__ == "__main__":
