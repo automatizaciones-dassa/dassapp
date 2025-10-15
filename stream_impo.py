@@ -46,6 +46,8 @@ def fetch_data_impo():
         retiros_impo['Hora'] = retiros_impo['Hora'].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith('0') else x)
         retiros_impo['Dia'] = retiros_impo['Dia'].dt.strftime('%d/%m')
         retiros_impo['Volumen'] = retiros_impo['Volumen'].round(0).astype(int)
+        retiros_impo['e-tally'] = retiros_impo['e-tally'].replace("-", None)
+        retiros_impo['Salida'] = retiros_impo['Salida'].replace("-", None)
         cols = retiros_impo.columns.tolist()
         cols.insert(1, cols.pop(cols.index('Hora')))
         retiros_impo = retiros_impo[cols]
@@ -133,13 +135,26 @@ def show_page_impo(allowed_clients=None, apply_mudanceras_filter=False):
         if st.session_state['username'] != "plazoleta":
             st.subheader("Verificaciones")
             if not verificaciones_impo.empty:
+                verificaciones_impo['Volumen'] = verificaciones_impo['Volumen'].round(0).astype(int)
                 verificaciones_impo_ctn = verificaciones_impo[verificaciones_impo['Envase'] == "Contenedor"]
                 verificaciones_impo_carga = verificaciones_impo[verificaciones_impo['Envase'] != "Contenedor"]
                 if not verificaciones_impo_ctn.empty:
+                    verificaciones_impo_ctn.drop(columns=['Volumen'], inplace=True)
+                    cols = verificaciones_impo_ctn.columns.tolist()
+                    cols.append(cols.pop(cols.index('Operacion')))
+                    verificaciones_impo_ctn = verificaciones_impo_ctn[cols]
                     st.write("Contenedores")
                     st.dataframe(verificaciones_impo_ctn.style.apply(highlight, axis=1), 
                                 hide_index=True, use_container_width=True)
                 if not verificaciones_impo_carga.empty:
+                    cols = verificaciones_impo_carga.columns.tolist()
+                    for col in ['Operacion', 'Contenedor']:
+                        if col in cols:
+                            cols.append(cols.pop(cols.index(col)))
+                    for idx, col in enumerate(['Ubic.', 'Cant.', 'Envase'], start=2):
+                        if col in cols:
+                            cols.insert(idx, cols.pop(cols.index(col)))
+                    verificaciones_impo_carga = verificaciones_impo_carga[cols]
                     st.write("Carga suelta")
                     st.dataframe(verificaciones_impo_carga.style.apply(highlight, axis=1), 
                                 hide_index=True, use_container_width=True)
@@ -158,13 +173,13 @@ def show_page_impo(allowed_clients=None, apply_mudanceras_filter=False):
                     hide_index=True, use_container_width=True)
         if not retiros_impo_ctnnac.empty:
             st.write("CTNs Nacionales")
-            st.dataframe(retiros_impo_ctnnac.style.apply(highlight, axis=1), 
+            st.dataframe(retiros_impo_ctnnac.style.apply(highlight, axis=1),
                         column_config={'e-tally': st.column_config.LinkColumn('e-tally', display_text="\U0001F517",), 
                                         'Salida': st.column_config.LinkColumn('Salida', display_text="\U0001F517",)},
                         hide_index=True, use_container_width=True)
         if st.session_state['username'] != "plazoleta":
             st.write("Carga suelta")
-            st.dataframe(retiros_impo_carga.style.apply(highlight, axis=1), 
+            st.dataframe(retiros_impo_carga.style.apply(highlight, axis=1),
                         column_config={'e-tally': st.column_config.LinkColumn('e-tally', display_text="\U0001F517",), 
                                         'Salida': st.column_config.LinkColumn('Salida', display_text="\U0001F517",)},
                         hide_index=True, use_container_width=True)
