@@ -1,15 +1,23 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from supabase_connection import fetch_table_data
 
 def fetch_data_expo_historico():
-    arribos_expo_carga_historico = pd.read_csv('data/arribos_expo_carga_historico.csv')
-    arribos_expo_ctns_historico = pd.read_csv('data/arribos_expo_ctns_historico.csv')
-    historico_verificaciones_expo = pd.read_csv('data/historico_verificaciones_expo.csv')
-    historico_otros_expo = pd.read_csv('data/historico_otros_expo.csv')
-    historico_remisiones = pd.read_csv('data/historico_remisiones.csv')
-    historico_consolidados = pd.read_csv('data/historico_consolidados.csv') # Hay que armar algo con el egresado
-    return arribos_expo_carga_historico, arribos_expo_ctns_historico, historico_verificaciones_expo, historico_otros_expo, historico_remisiones, historico_consolidados
+    arribos_expo_carga_historico = fetch_table_data('arribos_expo_carga_historico')
+    arribos_expo_carga_historico.drop(columns=['fecha_registro'], inplace=True, errors='ignore')
+    arribos_expo_ctns_historico = fetch_table_data('arribos_expo_ctns_historico')
+    arribos_expo_ctns_historico['e-tally'] = arribos_expo_ctns_historico['e-tally'].fillna("")
+    arribos_expo_ctns_historico.drop(columns=['fecha_registro'], inplace=True, errors='ignore')
+    historico_verificaciones_expo = fetch_table_data('historico_verificaciones_expo')
+    historico_verificaciones_expo.drop(columns=['fecha_registro'], inplace=True, errors='ignore')
+    historico_otros_expo = fetch_table_data('historico_otros_expo')
+    historico_otros_expo.drop(columns=['fecha_registro'], inplace=True, errors='ignore')
+    historico_remisiones = fetch_table_data('historico_remisiones')
+    historico_remisiones['e-tally'] = historico_remisiones['e-tally'].fillna("")
+    historico_remisiones.drop(columns=['fecha_registro'], inplace=True, errors='ignore')
+   
+    return arribos_expo_carga_historico, arribos_expo_ctns_historico, historico_verificaciones_expo, historico_otros_expo, historico_remisiones
 
 def filter_data(data, cliente, start_date, end_date, date_column):
     if cliente == "Todos los clientes":
@@ -25,13 +33,12 @@ def filter_data(data, cliente, start_date, end_date, date_column):
     return filtered_data
 
 def show_page_expo_historico():
-    arribos_expo_carga_historico, arribos_expo_ctns_historico, historico_verificaciones_expo, historico_otros_expo, historico_remisiones, historico_consolidados = fetch_data_expo_historico()
+    arribos_expo_carga_historico, arribos_expo_ctns_historico, historico_verificaciones_expo, historico_otros_expo, historico_remisiones = fetch_data_expo_historico()
     arribos_expo_carga_historico['Fecha'] = pd.to_datetime(arribos_expo_carga_historico['Fecha'])
     arribos_expo_ctns_historico['Fecha'] = pd.to_datetime(arribos_expo_ctns_historico['Fecha'])
     historico_verificaciones_expo['Dia'] = pd.to_datetime(historico_verificaciones_expo['Dia'])
     historico_otros_expo['Dia'] = pd.to_datetime(historico_otros_expo['Dia'])
     historico_remisiones['Dia'] = pd.to_datetime(historico_remisiones['Dia'])
-    historico_consolidados['Dia'] = pd.to_datetime(historico_consolidados['Dia'])
     
     col_logo, col_title = st.columns([2, 5])
     with col_logo:
@@ -85,7 +92,10 @@ def show_page_expo_historico():
             client_options = ["Todos los clientes"] + sorted(list(arribos_expo_carga_historico['Cliente'].unique()))
             cliente_arribos_ctns = st.selectbox("Cliente", options=client_options, key='cliente_arribos_ctns')
             filtered_data_arribos_ctns = filter_data(arribos_expo_ctns_historico, cliente_arribos_ctns, start_date_arribos_ctns, end_date_arribos_ctns, "Fecha")
-        st.dataframe(filtered_data_arribos_ctns, hide_index=True, use_container_width=True)
+        st.dataframe(filtered_data_arribos_ctns,
+                     column_config={'e-tally': st.column_config.LinkColumn('e-tally', 
+                                                display_text="\U0001F517",)},
+                     hide_index=True, use_container_width=True)
 
         st.subheader("Remisiones")
         col2_4, col2_5, col2_6 = st.columns(3)
@@ -99,4 +109,7 @@ def show_page_expo_historico():
             client_options = ["Todos los clientes"] + sorted(list(arribos_expo_carga_historico['Cliente'].unique()))
             cliente_remisiones = st.selectbox("Cliente", options=client_options, key='cliente_remisiones')
             filtered_data_remisiones = filter_data(historico_remisiones, cliente_remisiones, start_date_remisiones, end_date_remisiones, "Dia")
-        st.dataframe(filtered_data_remisiones, hide_index=True, use_container_width=True)
+        st.dataframe(filtered_data_remisiones,
+                     column_config={'e-tally': st.column_config.LinkColumn('e-tally', 
+                                                display_text="\U0001F517",)},
+                     hide_index=True, use_container_width=True)
